@@ -1,4 +1,4 @@
-const WS_BASE = 'ws://localhost:4000';
+const WS_BASE = import.meta.env.VITE_WS_URL || 'ws://localhost:4000';
 
 export interface WsEvent {
   type: string;
