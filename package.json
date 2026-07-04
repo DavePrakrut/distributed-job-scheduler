@@ -1,0 +1,27 @@
+{
+  "name": "distributed-job-scheduler",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "build:backend": "npm run build -w backend",
+    "build:frontend": "npm run build -w frontend",
+    "lint": "npm run lint -w backend && npm run lint -w frontend",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,css,md}\"",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.7",
+    "prettier": "^3.3.2"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,json,css,md}": [
+      "prettier --write"
+    ]
+  }
+}

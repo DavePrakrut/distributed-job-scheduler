@@ -1,0 +1,40 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  verify:
+    name: Lint, Format and Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci
+
+      - name: Run Formatting Check
+        run: npx prettier --check "**/*.{ts,tsx,js,json,css,md}"
+
+      - name: Run Linting
+        run: npm run lint
+
+      - name: Generate Prisma Client (Backend)
+        run: npm run prisma:generate -w backend
+
+      - name: Compile Backend
+        run: npm run build:backend
+
+      - name: Compile Frontend
+        run: npm run build:frontend

@@ -1,0 +1,286 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum JobStatus {
+  SCHEDULED
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum RetryStrategy {
+  FIXED
+  LINEAR
+  EXPONENTIAL
+}
+
+enum WorkerStatus {
+  ACTIVE
+  IDLE
+  OFFLINE
+}
+
+model Organizations {
+  id       String     @id @default(uuid())
+  name     String
+  users    Users[]
+  projects Projects[]
+
+  // Soft Delete Support
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Users {
+  id             String        @id @default(uuid())
+  email          String        @unique
+  passwordHash   String
+  role           String        @default("MEMBER")
+  organizationId String
+  organization   Organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Soft Delete Support
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model Projects {
+  id             String          @id @default(uuid())
+  name           String
+  organizationId String
+  organization   Organizations   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  queues         Queues[]
+  jobs           Jobs[]
+  scheduledJobs  ScheduledJobs[]
+
+  // Soft Delete Support
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model RetryPolicies {
+  id               String        @id @default(uuid())
+  name             String
+  strategy         RetryStrategy @default(FIXED)
+  maxRetries       Int           @default(3)
+  baseDelaySeconds Int           @default(5)
+  factor           Float         @default(2.0)
+  queues           Queues[]
+
+  // Soft Delete Support
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Queues {
+  id             String            @id @default(uuid())
+  name           String
+  projectId      String
+  project        Projects          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  priority       Int               @default(1)
+  maxConcurrency Int               @default(5)
+  isPaused       Boolean           @default(false)
+  retryPolicyId  String
+  retryPolicy    RetryPolicies     @relation(fields: [retryPolicyId], references: [id])
+  jobs           Jobs[]
+  scheduledJobs  ScheduledJobs[]
+  deadLetterJobs DeadLetterQueue[]
+
+  // Soft Delete Support
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([retryPolicyId])
+}
+
+model Jobs {
+  id      String    @id @default(uuid())
+  name    String
+  payload Json
+  status  JobStatus @default(QUEUED)
+  runAt   DateTime  @default(now())
+
+  // Concurrency Locking fields
+  lockedByWorkerId String?
+  lockedByWorker   Workers?  @relation(fields: [lockedByWorkerId], references: [id], onDelete: SetNull)
+  lockedAt         DateTime?
+
+  queueId   String
+  queue     Queues   @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Batch Job support
+  batchId   String?
+
+  // Workflow Graph Dependencies
+  parentJobIds String[]
+
+  maxRetries        Int @default(3)
+  currentRetryCount Int @default(0)
+
+  executions      JobExecutions[]
+  jobLogs         JobLogs[]
+  deadLetterEntry DeadLetterQueue?
+
+  // Soft Delete Support
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, runAt])
+  @@index([queueId, status])
+  @@index([lockedByWorkerId])
+  @@index([projectId])
+  @@index([batchId])
+}
+
+model JobExecutions {
+  id           String    @id @default(uuid())
+  jobId        String
+  job          Jobs      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  workerId     String?
+  worker       Workers?  @relation(fields: [workerId], references: [id], onDelete: SetNull)
+  workerName   String
+  status       String // e.g. "SUCCESS", "FAILED"
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime  @default(now())
+  durationMs   Int
+  errorMessage String?
+  stackTrace   String?
+  attempt      Int
+  jobLogs      JobLogs[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([workerId])
+}
+
+model JobLogs {
+  id          String        @id @default(uuid())
+  executionId String
+  execution   JobExecutions @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  jobId       String
+  job         Jobs          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  level       String // e.g. "INFO", "WARN", "ERROR"
+  message     String
+  timestamp   DateTime      @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([executionId])
+  @@index([jobId])
+}
+
+model Workers {
+  id               String       @id @default(uuid())
+  name             String
+  hostName         String
+  status           WorkerStatus @default(ACTIVE)
+  concurrencyLimit Int          @default(10)
+  activeJobsCount  Int          @default(0)
+
+  lockedJobs Jobs[]
+  executions JobExecutions[]
+  heartbeats WorkerHeartbeats[]
+
+  // Soft Delete Support
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+model WorkerHeartbeats {
+  id              String   @id @default(uuid())
+  workerId        String
+  worker          Workers  @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  timestamp       DateTime @default(now())
+  activeJobsCount Int
+  cpuUsage        Float?
+  memoryUsage     Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workerId, timestamp])
+}
+
+model DeadLetterQueue {
+  id              String   @id @default(uuid())
+  jobId           String   @unique
+  job             Jobs     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  queueId         String
+  queue           Queues   @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  failedAt        DateTime @default(now())
+  reason          String
+  stackTrace      String?
+  originalPayload Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([queueId])
+}
+
+model ScheduledJobs {
+  id             String    @id @default(uuid())
+  name           String
+  cronExpression String
+  projectId      String
+  project        Projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  queueId        String
+  queue          Queues    @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  payload        Json
+  nextRunAt      DateTime
+  lastRunAt      DateTime?
+  isActive       Boolean   @default(true)
+
+  // Soft Delete Support
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, nextRunAt])
+  @@index([projectId])
+}

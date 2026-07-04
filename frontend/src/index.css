@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', sans-serif;
+
+  --color-cyber-dark: #070709;
+  --color-cyber-card: #0f1015;
+  --color-cyber-border: #1f212a;
+  --color-cyber-cyan: #00f2fe;
+  --color-cyber-blue: #4facfe;
+  --color-cyber-indigo: #6366f1;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-cyber-dark);
+  color: #f3f4f6;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar for premium dashboard feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cyber-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-cyber-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cyber-cyan);
+}
+
+/* Glow effects and animation utilities */
+.neon-glow-cyan {
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+}
+.neon-glow-indigo {
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+}
+
+.glassmorphism {
+  background: rgba(15, 16, 21, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Animate background grid */
+.grid-bg {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.6;
+    filter: drop-shadow(0 0 2px rgba(0, 242, 254, 0.4));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.8));
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite ease-in-out;
+}
