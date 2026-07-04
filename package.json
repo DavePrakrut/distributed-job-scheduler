@@ -12,7 +12,7 @@
     "build:frontend": "npm run build -w frontend",
     "lint": "npm run lint -w backend && npm run lint -w frontend",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,css,md}\"",
-    "prepare": "husky"
+    "prepare": "node -e \"if (process.env.NODE_ENV !== 'production' && require('fs').existsSync('.git')) { require('child_process').execSync('husky', { stdio: 'inherit' }); }\""
   },
   "devDependencies": {
     "husky": "^9.0.11",
