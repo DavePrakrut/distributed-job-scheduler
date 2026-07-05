@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage, Server } from 'http';
 import jwt from 'jsonwebtoken';
+import { TokenService } from './token.service';
 
 interface TokenPayload {
   userId: string;
@@ -43,10 +44,7 @@ export class WebSocketManager {
           return;
         }
 
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_ACCESS_SECRET || 'access-secret',
-        ) as TokenPayload;
+        const decoded = TokenService.verifyToken(token) as TokenPayload;
 
         this.wss?.handleUpgrade(request, socket, head, (ws) => {
           const authWs = ws as AuthenticatedWebSocket;
