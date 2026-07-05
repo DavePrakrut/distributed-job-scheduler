@@ -210,20 +210,10 @@ graph TD
     </p>
 
     <h3>Entity-Relationship Diagram (ERD)</h3>
-    <div class="diagram-container">
-        <pre class="mermaid">
-erDiagram
-  Organizations ||--o{ Users : "owns"
-  Organizations ||--o{ Projects : "owns"
-  Projects ||--o{ Queues : "owns"
-  Projects ||--o{ Jobs : "owns"
-  Projects ||--o{ ScheduledJobs : "holds templates"
-  Queues ||--o{ Jobs : "coordinates"
-  Queues ||--o{ ScheduledJobs : "coordinates templates"
-  Queues ||--o{ DeadLetterQueue : "captures failures"
-  Jobs ||--o{ JobExecutions : "logs executions"
-  JobExecutions ||--o{ JobLogs : "logs output"
-        </pre>
+    <p>The visual schemas below represent the entity-relationship constraints, primary keys (PK), foreign keys (FK), column types, and indices generated from the schema models:</p>
+    <div style="display: flex; flex-direction: column; gap: 20px; margin: 25px 0;">
+        <img src="erd_screenshot_1.png" alt="Database Relations Layout Part 1" class="screenshot" style="margin: 0; max-width: 100%;" />
+        <img src="erd_screenshot_2.png" alt="Database Relations Layout Part 2" class="screenshot" style="margin: 0; max-width: 100%;" />
     </div>
 
     <h3>Schema Explanations</h3>
