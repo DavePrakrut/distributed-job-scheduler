@@ -8,58 +8,76 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
-            color: #333;
-            max-width: 900px;
+            color: #1e293b;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 40px 20px;
-            background-color: #fafafa;
+            background-color: #f8fafc;
         }
-        h1, h2, h3 {
+        h1, h2, h3, h4 {
             color: #0f172a;
+            font-weight: 700;
         }
         h1 {
-            border-bottom: 2px solid #3b82f6;
-            padding-bottom: 10px;
-            font-size: 2.5em;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 12px;
+            font-size: 2.6em;
+            margin-bottom: 30px;
         }
         h2 {
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 2px solid #e2e8f0;
             padding-bottom: 8px;
-            margin-top: 40px;
-            font-size: 1.8em;
+            margin-top: 50px;
+            font-size: 1.9em;
+            color: #1e3a8a;
         }
         h3 {
-            font-size: 1.3em;
+            font-size: 1.4em;
+            margin-top: 30px;
+            color: #2563eb;
+        }
+        p, li {
+            font-size: 1.05em;
+            color: #334155;
         }
         .meta-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
+            margin: 25px 0;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
         }
         .meta-table th, .meta-table td {
-            border: 1px solid #cbd5e1;
-            padding: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 14px;
             text-align: left;
         }
         .meta-table th {
             background-color: #f1f5f9;
             width: 30%;
+            color: #475569;
+            font-weight: 600;
         }
         pre {
             background-color: #0f172a;
             color: #f8fafc;
-            padding: 15px;
-            border-radius: 6px;
+            padding: 18px;
+            border-radius: 8px;
             overflow-x: auto;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
             font-size: 0.9em;
+            margin: 20px 0;
+            box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.06);
         }
         code {
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
             background-color: #e2e8f0;
-            padding: 2px 6px;
+            padding: 3px 6px;
             border-radius: 4px;
-            font-size: 0.95em;
+            font-size: 0.9em;
+            color: #0f172a;
         }
         pre code {
             background-color: transparent;
@@ -69,31 +87,51 @@
         .badge {
             background-color: #10b981;
             color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
+            padding: 4px 10px;
+            border-radius: 9999px;
             font-size: 0.85em;
-            font-weight: bold;
-        }
-        .badge-fail {
-            background-color: #ef4444;
+            font-weight: 600;
         }
         .screenshot {
             max-width: 100%;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #cbd5e1;
             border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            margin: 25px 0;
+        }
+        .diagram-container {
+            background-color: #0f172a;
+            padding: 20px;
+            border-radius: 8px;
             margin: 20px 0;
+            overflow-x: auto;
         }
         @media print {
             body {
                 background-color: #fff;
                 padding: 0;
             }
-            .no-print {
-                display: none;
+            .diagram-container {
+                background-color: #fff;
+                border: 1px solid #e2e8f0;
             }
         }
     </style>
+    <!-- Load Mermaid.js to render diagrams dynamically -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'neutral',
+            securityLevel: 'loose',
+            themeVariables: {
+                background: '#ffffff',
+                primaryColor: '#eff6ff',
+                primaryTextColor: '#1e3a8a',
+                lineColor: '#2563eb'
+            }
+        });
+    </script>
 </head>
 <body>
 
@@ -107,7 +145,7 @@
         </tr>
         <tr>
             <th>Tech Stack</th>
-            <td>Node.js, Express, TypeScript, Prisma, PostgreSQL, React (Vite), TailwindCSS, Recharts, WebSockets</td>
+            <td>Node.js, Express, TypeScript, Prisma, PostgreSQL (Supabase Cloud), React (Vite), TailwindCSS, Recharts, WebSockets</td>
         </tr>
         <tr>
             <th>Live Dashboard URL</th>
@@ -132,24 +170,77 @@
 
     <h2>1. Executive Summary</h2>
     <p>
-        Codity is a high-performance background task execution engine designed to manage delayed jobs, recurring cron tasks, and prioritizations across a multi-tenant enterprise environment. The core backend uses an atomic database lock model via PostgreSQL <code>SKIP LOCKED</code> queries to guarantee that no task is ever executed twice by concurrent background worker processes.
+        Codity is a production-inspired, highly available, and multi-tenant background task execution engine. It enables scheduling immediate, delayed, and recurring cron-based tasks across a cluster of background workers. The scheduler prioritizes reliability, concurrency safety, and transaction integrity. The system leverages raw PostgreSQL <code>FOR UPDATE SKIP LOCKED</code> transactions to guarantee race-condition-free, exact-once task consumption.
     </p>
 
     <h2>2. System Architecture</h2>
     <p>
-        The system consists of four independent components that scale horizontally:
+        The system consists of independent component layers designed to decouple task ingestion from execution:
     </p>
     <ul>
-        <li><strong>API Server</strong>: Exposes REST API endpoints for job submission, queue configuration, and authentication.</li>
-        <li><strong>WebSockets Hub</strong>: Relays real-time events (job status updates, worker online indicators) to client dashboards.</li>
-        <li><strong>Workers Pool</strong>: Standalone Node.js threads that query, lock, and process ready jobs concurrently using custom backoffs.</li>
-        <li><strong>Scheduler</strong>: Periodically sweeps scheduled/delayed jobs and converts cron templates into executable task records.</li>
+        <li><strong>Client UI Layer</strong>: A premium, dark-themed React Single Page Application (SPA) utilizing WebSockets for real-time state telemetry overlays.</li>
+        <li><strong>API & WebSocket Server Gateway</strong>: An Express server validating HTTP traffic using JWT credentials and coordinating WebSocket connection rooms.</li>
+        <li><strong>Background Processing Daemons</strong>: Co-located worker and scheduler threads running in the Node process environment, continuously polling tasks and triggering execution callbacks.</li>
+        <li><strong>Database Layer</strong>: Relational PostgreSQL engine managing states, indexes, and lock registries.</li>
     </ul>
 
-    <h2>3. Concurrency & Integrity Mechanics</h2>
-    <h3>Atomic Job Claiming</h3>
+    <div class="diagram-container">
+        <pre class="mermaid">
+graph TD
+  UI["React SPA Dashboard"] -->|REST API Calls| Express["Express API Gateway"]
+  UI -->|Handshake Check| WSS["WebSocket Server Hub"]
+  
+  Express -->|Prisma Client| DB[(PostgreSQL Database)]
+  WSS -->|Subscribe Projects| DB
+  
+  subgraph Daemons ["Co-located Daemons"]
+    Scheduler["Scheduler Loop (node-cron)"]
+    Worker["Worker Loop (Concurrency Pool)"]
+  end
+  
+  Scheduler -->|Promote Delayed / Spawn Cron| DB
+  Worker -->|SELECT ... SKIP LOCKED| DB
+  Worker -->|Trigger WebSockets Broadcast| WSS
+        </pre>
+    </div>
+
+    <h2>3. Database Design & Relational Schema</h2>
     <p>
-        To prevent race conditions where multiple workers try to execute the same job simultaneously, the claiming query uses the <code>FOR UPDATE SKIP LOCKED</code> mechanism inside a raw PostgreSQL update block:
+        The database design follows high-performance normalization guidelines, utilizing GUID primary keys and robust indexes to optimize query processing times.
+    </p>
+
+    <h3>Entity-Relationship Diagram (ERD)</h3>
+    <div class="diagram-container">
+        <pre class="mermaid">
+erDiagram
+  Organizations ||--o{ Users : "owns"
+  Organizations ||--o{ Projects : "owns"
+  Projects ||--o{ Queues : "owns"
+  Projects ||--o{ Jobs : "owns"
+  Projects ||--o{ ScheduledJobs : "holds templates"
+  Queues ||--o{ Jobs : "coordinates"
+  Queues ||--o{ ScheduledJobs : "coordinates templates"
+  Queues ||--o{ DeadLetterQueue : "captures failures"
+  Jobs ||--o{ JobExecutions : "logs executions"
+  JobExecutions ||--o{ JobLogs : "logs output"
+        </pre>
+    </div>
+
+    <h3>Schema Explanations</h3>
+    <ul>
+        <li><strong>Primary & Foreign Keys</strong>: All entities use 128-bit UUID primary keys to support secure distributed indexing. Cascading rules (<code>onDelete: Cascade</code>) are defined on Projects and Queues to ensure that deleting a queue automatically cleans up all associated jobs and executions, avoiding database orphan entries.</li>
+        <li><strong>Database Normalization</strong>: The schema maintains Third Normal Form (3NF). Core queue attributes (priorities, concurrency rates, backoff strategies) are separated from the task state engine. Job logs and historical attempts are kept in distinct <code>JobExecutions</code> and <code>JobLogs</code> tables.</li>
+        <li><strong>Index Optimizations</strong>: Performance is optimized via compound and partial indices:
+            <pre><code>CREATE INDEX "idx_jobs_execution" ON "Jobs" ("projectId", "status", "runAt");
+CREATE INDEX "idx_executions_jobId" ON "JobExecutions" ("jobId");</code></pre>
+            These indexes allow workers to retrieve ready jobs instantly without table scans.
+        </li>
+    </ul>
+
+    <h2>4. Concurrency & Transactional Locks</h2>
+    <h3>PostgreSQL SKIP LOCKED for Atomic Claiming</h3>
+    <p>
+        To prevent race conditions where multiple workers grab the same job, Codity executes an atomic query using PostgreSQL's row-level locking mechanism:
     </p>
     <pre><code>UPDATE "Jobs"
 SET "status" = 'RUNNING', "lockedByWorkerId" = $1, "lockedAt" = NOW()
@@ -169,53 +260,112 @@ WHERE "id" = (
   LIMIT 1
 ) RETURNING *;</code></pre>
 
-    <h3>Optimistic Cron Scheduling Locks</h3>
+    <h3>Optimistic Locks in Distributed Cron Scheduling</h3>
     <p>
-        To prevent double-triggering recurring cron schedules in highly available multi-scheduler environments, the scheduler executes an atomic optimistic update before spawning the job:
+        To prevent double-triggering recurring cron schedules in highly available multi-scheduler configurations, we execute an atomic update checking the <code>nextRunAt</code> timestamp:
     </p>
     <pre><code>const updated = await tx.scheduledJobs.updateMany({
   where: { id: schedule.id, nextRunAt: schedule.nextRunAt },
   data: { lastRunAt: now, nextRunAt }
 });
-if (updated.count === 0) return; // Skipped (already triggered by another scheduler)</code></pre>
+if (updated.count === 0) return; // Prevent double-execution</code></pre>
 
-    <h2>4. Retry Strategies & Dead Letter Queue (DLQ)</h2>
+    <h2>5. Reliability: Retries & Dead Letter Queue (DLQ)</h2>
     <p>
-        Codity implements three retry policies to handle transient task failures:
+        Transient execution failures are handled gracefully using custom backoff delays:
     </p>
     <table class="meta-table">
         <thead>
             <tr>
-                <th>Strategy</th>
-                <th>Formula</th>
+                <th>Retry Strategy</th>
+                <th>Backoff Math Formula</th>
                 <th>Description</th>
             </tr>
         </thead>
         <tbody>
             <tr>
                 <th>Fixed Delay</th>
-                <td><code>Delay = BaseDelay</code></td>
-                <td>Retries task after a static configured delay.</td>
+                <td><code>Delay = BaseDelaySeconds</code></td>
+                <td>Retries the task after a static configured delay.</td>
             </tr>
             <tr>
                 <th>Linear Backoff</th>
-                <td><code>Delay = BaseDelay * Attempt</code></td>
-                <td>Increments delay linearly with each consecutive attempt.</td>
+                <td><code>Delay = BaseDelaySeconds * CurrentAttempt</code></td>
+                <td>Increments delay linearly with each retry attempt.</td>
             </tr>
             <tr>
                 <th>Exponential Backoff</th>
-                <td><code>Delay = BaseDelay * (Factor ^ (Attempt - 1))</code></td>
-                <td>Multiplies delay exponentially to relieve downstream systems.</td>
+                <td><code>Delay = BaseDelaySeconds * (Factor ^ (Attempt - 1))</code></td>
+                <td>Increases delay exponentially to give backend systems time to recover.</td>
             </tr>
         </tbody>
     </table>
     <p>
-        If a job exceeds the maximum retry limit, it is automatically routed to the <strong>Dead Letter Queue (DLQ)</strong>. The dashboard allows administrators to inspect the full stack trace and manually trigger retries.
+        If a job fails permanently after exhausting all retries, it is automatically routed to the <strong>Dead Letter Queue (DLQ)</strong> with a snapshot of its payload, failure reason, and full stack trace.
     </p>
 
-    <h2>5. Comprehensive Jest Test Suite</h2>
+    <h2>6. REST API Documentation</h2>
+    <table class="meta-table">
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Endpoint Route</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>POST</code></td>
+                <td>`/api/auth/register`</td>
+                <td>Registers a new organization and administrator account.</td>
+            </tr>
+            <tr>
+                <td><code>POST</code></td>
+                <td>`/api/auth/login`</td>
+                <td>Logs in an administrator and returns a JWT access token.</td>
+            </tr>
+            <tr>
+                <td><code>GET</code></td>
+                <td>`/api/projects`</td>
+                <td>Lists all projects in the active organization.</td>
+            </tr>
+            <tr>
+                <td><code>POST</code></td>
+                <td>`/api/projects/:projectId/queues`</td>
+                <td>Creates a new job queue with concurrency limits and backoffs.</td>
+            </tr>
+            <tr>
+                <td><code>POST</code></td>
+                <td>`/api/projects/:projectId/jobs`</td>
+                <td>Enqueues a new background job with a JSON payload.</td>
+            </tr>
+            <tr>
+                <td><code>GET</code></td>
+                <td>`/api/projects/:projectId/jobs`</td>
+                <td>Lists jobs inside a project (supports pagination and state filters).</td>
+            </tr>
+            <tr>
+                <td><code>POST</code></td>
+                <td>`/api/jobs/:id/cancel`</td>
+                <td>Cancels a pending or running job.</td>
+            </tr>
+            <tr>
+                <td><code>POST</code></td>
+                <td>`/api/jobs/:id/retry`</td>
+                <td>Manually retries a failed job or DLQ record.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>7. Design Decisions & Trade-Offs</h2>
+    <ul>
+        <li><strong>SKIP LOCKED vs. Redis (BullMQ)</strong>: Leveraging PostgreSQL's <code>SKIP LOCKED</code> transaction capability allows us to reuse our existing SQL database infrastructure, maintaining ACID compliance and avoiding the cost of a dedicated Redis instance.</li>
+        <li><strong>Co-Located Process Model</strong>: To support deployment on cloud environments like Render's free tier, the worker and scheduler daemons are co-located in the same Node.js process as the HTTP/WS gateway. This reduces the number of running services to one, avoiding multi-container subscription fees while maintaining thread-level isolation.</li>
+    </ul>
+
+    <h2>8. Automated Verification (Jest Test Suite)</h2>
     <p>
-        The backend code is covered by a Jest test suite, achieving over <strong>81.28% line coverage</strong> and <strong>90.38% function coverage</strong>:
+        Our critical backend business logic is covered by Jest tests, achieving **81.28% line coverage**:
     </p>
     <pre><code>PASS tests/services.test.ts
 PASS tests/app.test.ts
@@ -229,12 +379,15 @@ Test Suites: 7 passed, 7 total
 Tests:       44 passed, 44 total
 Lines:       81.28% Covered</code></pre>
 
-    <h2>6. Live Dashboard Screenshots</h2>
-    <p>Below is the live Queue Registry dashboard interface with active queues, concurrency limits, and processing counts:</p>
-    <img src="queues_screenshot.png" alt="Queue Registry Screenshot" class="screenshot" />
+    <h2>9. Live Dashboard Screenshots</h2>
+    
+    <h3>Active Queue Registry</h3>
+    <p>Below is your live Queue Registry panel, demonstrating your created queues and active WebSocket metrics connection:</p>
+    <img src="queues_screenshot.png" alt="Queue Registry Panel" class="screenshot" />
 
-    <p>Below is the live Dashboard Analytics console showcasing job execution trends, queue throughput, workers CPU status, and retry metrics:</p>
-    <img src="analytics_screenshot.png" alt="Dashboard Analytics Screenshot" class="screenshot" />
+    <h3>Dashboard Metrics & Telemetry Console</h3>
+    <p>Below is your real-time analytics panel displaying active node stats, throughput distributions, and failure rates:</p>
+    <img src="analytics_screenshot.png" alt="Dashboard Analytics Console" class="screenshot" />
 
 </body>
 </html>
