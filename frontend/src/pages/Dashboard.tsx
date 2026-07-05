@@ -260,8 +260,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, org, onLogout }) => 
     if (res.data) {
       setQueues(res.data);
       // Automatically pre-fill queue selector for job creations
-      if (res.data.length > 0 && !newJobQueueId) {
-        setNewJobQueueId(res.data[0].id);
+      if (res.data.length > 0) {
+        const queueExists = res.data.some((q) => q.id === newJobQueueId);
+        if (!queueExists) {
+          setNewJobQueueId(res.data[0].id);
+        }
+      } else {
+        setNewJobQueueId('');
       }
     }
   };
@@ -341,7 +346,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, org, onLogout }) => 
   };
 
   const handleEnqueueJob = async () => {
-    if (!currentProject || !newJobName || !newJobQueueId) return;
+    if (!currentProject) {
+      alert('No project selected');
+      return;
+    }
+    if (!newJobQueueId) {
+      alert(
+        'Please select a target queue. If no queues exist, create one first under Queue Registry.',
+      );
+      return;
+    }
+    if (!newJobName) {
+      alert('Please specify a job name');
+      return;
+    }
 
     let payload = {};
     try {
@@ -370,6 +388,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, org, onLogout }) => 
       setShowEnqueueJob(false);
       fetchJobs();
       fetchProjectSummary();
+    } else {
+      alert(`Failed to enqueue job: ${res.error || 'Unknown error'}`);
     }
   };
 
