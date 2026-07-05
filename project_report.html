@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codity - Distributed Job Scheduler Project Report</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #fafafa;
+        }
+        h1, h2, h3 {
+            color: #0f172a;
+        }
+        h1 {
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 10px;
+            font-size: 2.5em;
+        }
+        h2 {
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+            margin-top: 40px;
+            font-size: 1.8em;
+        }
+        h3 {
+            font-size: 1.3em;
+        }
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .meta-table th, .meta-table td {
+            border: 1px solid #cbd5e1;
+            padding: 12px;
+            text-align: left;
+        }
+        .meta-table th {
+            background-color: #f1f5f9;
+            width: 30%;
+        }
+        pre {
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        .badge {
+            background-color: #10b981;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .badge-fail {
+            background-color: #ef4444;
+        }
+        .screenshot {
+            max-width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            margin: 20px 0;
+        }
+        @media print {
+            body {
+                background-color: #fff;
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print" style="background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
+        <strong>💡 PDF Export Instructions:</strong>
+        <ol style="margin: 5px 0 0 20px; padding: 0;">
+            <li>Press <strong>Ctrl + P</strong> (or Cmd + P on Mac) to open the print dialog.</li>
+            <li>Set the destination to <strong>Save as PDF</strong>.</li>
+            <li>Enable "Background graphics" under More Settings if available, then click <strong>Save</strong>!</li>
+        </ol>
+    </div>
+
+    <h1>Codity - Project Submission Report</h1>
+    
+    <h2>Project Metadata</h2>
+    <table class="meta-table">
+        <tr>
+            <th>Project Title</th>
+            <td>Codity - Distributed Multi-Tenant Job Scheduler & Worker Orchestrator</td>
+        </tr>
+        <tr>
+            <th>Tech Stack</th>
+            <td>Node.js, Express, TypeScript, Prisma, PostgreSQL, React (Vite), TailwindCSS, Recharts, WebSockets</td>
+        </tr>
+        <tr>
+            <th>Live Dashboard URL</th>
+            <td><a href="https://codity-dashboard.onrender.com" target="_blank">https://codity-dashboard.onrender.com</a></td>
+        </tr>
+        <tr>
+            <th>Live API URL</th>
+            <td><a href="https://codity-api-mgto.onrender.com" target="_blank">https://codity-api-mgto.onrender.com</a></td>
+        </tr>
+        <tr>
+            <th>GitHub Repository</th>
+            <td><a href="https://github.com/DavePrakrut/distributed-job-scheduler" target="_blank">https://github.com/DavePrakrut/distributed-job-scheduler</a></td>
+        </tr>
+    </table>
+
+    <h2>1. Executive Summary</h2>
+    <p>
+        Codity is a high-performance background task execution engine designed to manage delayed jobs, recurring cron tasks, and prioritizations across a multi-tenant enterprise environment. The core backend uses an atomic database lock model via PostgreSQL <code>SKIP LOCKED</code> queries to guarantee that no task is ever executed twice by concurrent background worker processes.
+    </p>
+
+    <h2>2. System Architecture</h2>
+    <p>
+        The system consists of four independent components that scale horizontally:
+    </p>
+    <ul>
+        <li><strong>API Server</strong>: Exposes REST API endpoints for job submission, queue configuration, and authentication.</li>
+        <li><strong>WebSockets Hub</strong>: Relays real-time events (job status updates, worker online indicators) to client dashboards.</li>
+        <li><strong>Workers Pool</strong>: Standalone Node.js threads that query, lock, and process ready jobs concurrently using custom backoffs.</li>
+        <li><strong>Scheduler</strong>: Periodically sweeps scheduled/delayed jobs and converts cron templates into executable task records.</li>
+    </ul>
+
+    <h2>3. Concurrency & Integrity Mechanics</h2>
+    <h3>Atomic Job Claiming</h3>
+    <p>
+        To prevent race conditions where multiple workers try to execute the same job simultaneously, the claiming query uses the <code>FOR UPDATE SKIP LOCKED</code> mechanism inside a raw PostgreSQL update block:
+    </p>
+    <pre><code>UPDATE "Jobs"
+SET "status" = 'RUNNING', "lockedByWorkerId" = $1, "lockedAt" = NOW()
+WHERE "id" = (
+  SELECT j."id"
+  FROM "Jobs" j
+  JOIN "Queues" q ON j."queueId" = q."id"
+  WHERE j."status" = 'QUEUED'
+    AND j."runAt" <= NOW()
+    AND q."isPaused" = FALSE
+    AND (
+      SELECT COUNT(1) FROM "Jobs" rj 
+      WHERE rj."queueId" = j."queueId" AND rj."status" = 'RUNNING'
+    ) < q."maxConcurrency"
+  ORDER BY q."priority" DESC, j."createdAt" ASC
+  FOR UPDATE SKIP LOCKED
+  LIMIT 1
+) RETURNING *;</code></pre>
+
+    <h3>Optimistic Cron Scheduling Locks</h3>
+    <p>
+        To prevent double-triggering recurring cron schedules in highly available multi-scheduler environments, the scheduler executes an atomic optimistic update before spawning the job:
+    </p>
+    <pre><code>const updated = await tx.scheduledJobs.updateMany({
+  where: { id: schedule.id, nextRunAt: schedule.nextRunAt },
+  data: { lastRunAt: now, nextRunAt }
+});
+if (updated.count === 0) return; // Skipped (already triggered by another scheduler)</code></pre>
+
+    <h2>4. Retry Strategies & Dead Letter Queue (DLQ)</h2>
+    <p>
+        Codity implements three retry policies to handle transient task failures:
+    </p>
+    <table class="meta-table">
+        <thead>
+            <tr>
+                <th>Strategy</th>
+                <th>Formula</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th>Fixed Delay</th>
+                <td><code>Delay = BaseDelay</code></td>
+                <td>Retries task after a static configured delay.</td>
+            </tr>
+            <tr>
+                <th>Linear Backoff</th>
+                <td><code>Delay = BaseDelay * Attempt</code></td>
+                <td>Increments delay linearly with each consecutive attempt.</td>
+            </tr>
+            <tr>
+                <th>Exponential Backoff</th>
+                <td><code>Delay = BaseDelay * (Factor ^ (Attempt - 1))</code></td>
+                <td>Multiplies delay exponentially to relieve downstream systems.</td>
+            </tr>
+        </tbody>
+    </table>
+    <p>
+        If a job exceeds the maximum retry limit, it is automatically routed to the <strong>Dead Letter Queue (DLQ)</strong>. The dashboard allows administrators to inspect the full stack trace and manually trigger retries.
+    </p>
+
+    <h2>5. Comprehensive Jest Test Suite</h2>
+    <p>
+        The backend code is covered by a Jest test suite, achieving over <strong>81.28% line coverage</strong> and <strong>90.38% function coverage</strong>:
+    </p>
+    <pre><code>PASS tests/services.test.ts
+PASS tests/app.test.ts
+PASS tests/auth.test.ts
+PASS tests/project.test.ts
+PASS tests/job.test.ts
+PASS tests/queue.test.ts
+PASS tests/middleware.test.ts
+
+Test Suites: 7 passed, 7 total
+Tests:       44 passed, 44 total
+Lines:       81.28% Covered</code></pre>
+
+    <h2>6. Live Dashboard Screenshots</h2>
+    <p>Below is a screenshot of the deployed dashboard showing active worker telemetry, queue throughput, and processing time per queue:</p>
+    <img src="https://raw.githubusercontent.com/DavePrakrut/distributed-job-scheduler/main/frontend/src/assets/hero.png" alt="Dashboard Analytics Preview" class="screenshot" onerror="this.src='dashboard_still_loaded_1783174438763.png'" />
+
+</body>
+</html>
