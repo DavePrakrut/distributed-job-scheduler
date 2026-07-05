@@ -1,6 +1,5 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage, Server } from 'http';
-import jwt from 'jsonwebtoken';
 import { TokenService } from './token.service';
 
 interface TokenPayload {
