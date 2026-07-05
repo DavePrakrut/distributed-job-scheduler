@@ -14,7 +14,6 @@ const createJobValidation = validate({
   body: [
     { field: 'name', type: 'string', required: true },
     { field: 'queueId', type: 'string', required: true },
-    { field: 'payload', type: 'string', required: false }, // JSON payload can be validated as object, let's allow it
     { field: 'runAt', type: 'string', required: false },
     { field: 'maxRetries', type: 'number', required: false },
   ],
