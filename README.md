@@ -1,8 +1,4 @@
-# Codity - Enterprise Job Queue & Worker Orchestrator
-
-Codity is a high-performance, multi-tenant distributed job queue and background worker orchestrator built using Node.js, Express, TypeScript, Prisma, and PostgreSQL. It provides real-time job tracking, worker telemetry, cascading deletes, retry backoffs, and scheduling.
-
----
+#
 
 ## 1. System Architecture
 
